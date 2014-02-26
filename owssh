@@ -1,0 +1,62 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'json'
+require 'pp'
+
+# Export environment variables for AWS CLI here
+
+if ARGV.empty?
+  puts "Usage:"
+  puts "owssh list - List all environments"
+  puts "owssh describe - Show details of instances in all stacks"
+  puts "owssh describe [stack] - Show details of a specific stack"
+  puts "owssh [stack] [instance] - SSH to an instance in a stack"
+  exit
+end
+
+$stacks = {}
+$instances = {}
+
+stacks_json = JSON.parse(`aws opsworks describe-stacks`)
+
+stacks_json['Stacks'].each do |stack|
+  $stacks["#{stack['Name']}"] = stack['StackId']
+end
+
+if ARGV[0] == "list" then
+  puts "    --- Stacks ---"
+  $stacks.each do |stack_name, id|
+    puts "Name: #{stack_name}      ID: #{id}"
+  end
+  exit
+elsif ARGV[0] == "describe" && ARGV[1].nil? then
+  $stacks.each do |stack_name, id|
+    puts "Stack: #{stack_name}    ID: #{id}"
+    instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{id}`)
+    instances_json['Instances'].each do |instance|
+      puts "Name: #{instance['Hostname']}  IP: #{instance['PublicIp']}"
+    end
+  end
+  exit
+elsif ARGV[0] == "describe" && !ARGV[1].nil? then
+  stack_arg = ARGV[1]
+  # Make this case insensitive
+  puts "Getting data for Stack: #{stack_arg}"
+  instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
+  instances_json['Instances'].each do |instance|
+    puts "Name: #{instance['Hostname']}  IP: #{instance['PublicIp']}"
+  end
+elsif $stacks.any? {|name, id| name.include? ARGV[0]} then
+  stack_arg = ARGV[0]
+  instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
+  instances_json['Instances'].each do |instance|
+    $instances["#{instance["Hostname"]}"] = instance["PublicIp"]
+  end
+  if $instances.any? {|name, ip| name.include? ARGV[1]} then
+    exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]}")
+  else
+    puts "Instance with name '#{ARGV[1]}' not found"
+    exit
+  end
+end
