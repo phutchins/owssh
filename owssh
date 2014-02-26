@@ -5,6 +5,7 @@ require 'json'
 require 'pp'
 
 # Export environment variables for AWS CLI here
+$debug = true
 
 if ARGV.empty?
   puts "Usage:"
@@ -21,6 +22,7 @@ $instances = {}
 stacks_json = JSON.parse(`aws opsworks describe-stacks`)
 
 stacks_json['Stacks'].each do |stack|
+  if $debug then puts "Stack Name: #{stack['Name'].gsub(' ','_').downcase}     Stack ID: #{stack['StackId']}" end
   stack_name = stack['Name'].gsub(' ','_').downcase
   $stacks[stack_name.to_s] = stack['StackId']
 end
@@ -36,18 +38,20 @@ elsif ARGV[0] == "describe" && ARGV[1].nil? then
     puts "Stack: #{stack_name}    ID: #{id}"
     instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{id}`)
     instances_json['Instances'].each do |instance|
-      puts "Name: #{instance['Hostname']}  IP: #{instance['PublicIp']}"
+      ip = instance['ElasticIp'] || instance['PublicIp']
+      puts "Name: #{instance['Hostname']}  IP: #{ip}"
     end
   end
   exit
 elsif ARGV[0] == "describe" && !ARGV[1].nil? then
   stack_arg = ARGV[1]
   if $stacks.has_key?(ARGV[1].downcase.to_s) then
+    if $debug then puts "Stack ID: #{$stacks[stack_arg]}" end
     puts "Getting data for Stack: #{stack_arg}"
     instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
     instances_json['Instances'].each do |instance|
-      public_ip = instance['PublicIp'] || "DOWN"
-      puts "Name: #{instance['Hostname']}  IP: #{public_ip}"
+      ip = instance['ElasticIp'] || instance['PublicIp'] || "DOWN"
+      puts "Name: #{instance['Hostname']}  IP: #{ip}"
     end
   elsif
     puts "Unable to find stack named '#{ARGV[1]}'"
