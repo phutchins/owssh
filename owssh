@@ -5,7 +5,7 @@ require 'json'
 require 'pp'
 
 # Export environment variables for AWS CLI here
-$debug = true
+$debug = false
 
 if ARGV.empty?
   puts "Usage:"
