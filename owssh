@@ -42,7 +42,7 @@ elsif ARGV[0] == "describe" && ARGV[1].nil? then
   exit
 elsif ARGV[0] == "describe" && !ARGV[1].nil? then
   stack_arg = ARGV[1]
-  if $stacks.has_key?(ARGV[1].downcase) then
+  if $stacks.has_key?(ARGV[1].downcase.to_s) then
     puts "Getting data for Stack: #{stack_arg}"
     instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
     instances_json['Instances'].each do |instance|
@@ -53,7 +53,7 @@ elsif ARGV[0] == "describe" && !ARGV[1].nil? then
     puts "Unable to find stack named '#{ARGV[1]}'"
     exit
   end
-elsif $stacks.has_key(ARGV[0].downcase) then
+elsif $stacks.has_key?(ARGV[0].downcase.to_s) then
   if ARGV[1].nil? then
     puts "Please enter an instance name. I.E. rails-app3"
     exit
