@@ -21,7 +21,8 @@ $instances = {}
 stacks_json = JSON.parse(`aws opsworks describe-stacks`)
 
 stacks_json['Stacks'].each do |stack|
-  $stacks["#{stack['Name']}"] = stack['StackId']
+  stack_name = stack['Name'].gsub(' ','_').downcase
+  $stacks[stack_name.to_s] = stack['StackId']
 end
 
 if ARGV[0] == "list" then
@@ -41,22 +42,36 @@ elsif ARGV[0] == "describe" && ARGV[1].nil? then
   exit
 elsif ARGV[0] == "describe" && !ARGV[1].nil? then
   stack_arg = ARGV[1]
-  # Make this case insensitive
-  puts "Getting data for Stack: #{stack_arg}"
-  instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
-  instances_json['Instances'].each do |instance|
-    puts "Name: #{instance['Hostname']}  IP: #{instance['PublicIp']}"
+  if $stacks.has_key?(ARGV[1].downcase) then
+    puts "Getting data for Stack: #{stack_arg}"
+    instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
+    instances_json['Instances'].each do |instance|
+      public_ip = instance['PublicIp'] || "DOWN"
+      puts "Name: #{instance['Hostname']}  IP: #{public_ip}"
+    end
+  elsif
+    puts "Unable to find stack named '#{ARGV[1]}'"
+    exit
   end
-elsif $stacks.any? {|name, id| name.include? ARGV[0]} then
-  stack_arg = ARGV[0]
+elsif $stacks.has_key(ARGV[0].downcase) then
+  if ARGV[1].nil? then
+    puts "Please enter an instance name. I.E. rails-app3"
+    exit
+  end
+  stack_arg = ARGV[0].downcase
   instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
   instances_json['Instances'].each do |instance|
     $instances["#{instance["Hostname"]}"] = instance["PublicIp"]
   end
-  if $instances.any? {|name, ip| name.include? ARGV[1]} then
+  if $instances.has_key?(ARGV[1]) then
+    puts "Opening connection to #{ARGV[1]}..."
     exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]}")
   else
     puts "Instance with name '#{ARGV[1]}' not found"
     exit
   end
+else
+  puts "I don't quite understand what you're asking me to do..."
+  puts " Try running owssh with no arguments for help!"
+  exit
 end
