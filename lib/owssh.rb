@@ -26,7 +26,12 @@ class Owssh
     instances_json['Instances'].each do |instance|
       pub_ip = instance['ElasticIp'] || instance['PublicIp'] || "DOWN"
       priv_ip = instance['PrivateIp'] || "N/A"
-      type = instance['Hostname'].split("-").first
+      match = instance['Hostname'].match(/(.*)\d+/) rescue nil
+      if !match.nil? then
+        type = match[1].to_s
+      else
+        type = "N/A"
+      end
       my_instances[instance['Hostname'].to_s] = { "PUB_IP" => pub_ip.to_s, "PRIV_IP" => priv_ip.to_s, "TYPE" => type }
     end
     my_instances
@@ -74,7 +79,7 @@ class Owssh
     puts "owssh [Stack Name] [Hostname or Type] - SSH to a host in a stack"
     puts "owssh [Stack Name] [Hostname or Type] \"Your command here\" - SSH to a host in a stack and run a command"
     puts ""
-    puts " Type - The type of host. I.E. rails-app, resque, etc..."
+    puts " Type     - The type of host. I.E. rails-app, resque, etc..."
     puts " Hostname - The name of the host. I.E. rails-app1, resque1, etc..."
     exit
   end
