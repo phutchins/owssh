@@ -2,4 +2,4 @@
 
 require 'owssh'
 
-Owssh.new.run
+Owssh.new.owssh

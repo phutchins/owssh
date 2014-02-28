@@ -66,6 +66,19 @@ class Owssh
     end
   end
 
+  def print_help
+    puts "Usage:"
+    puts "owssh list - List all environments"
+    puts "owssh describe - Show details of hosts in all stacks"
+    puts "owssh describe [Stack Name] - Show details of a specific stack"
+    puts "owssh [Stack Name] [Hostname or Type] - SSH to a host in a stack"
+    puts "owssh [Stack Name] [Hostname or Type] \"Your command here\" - SSH to a host in a stack and run a command"
+    puts ""
+    puts " Type - The type of host. I.E. rails-app, resque, etc..."
+    puts " Hostname - The name of the host. I.E. rails-app1, resque1, etc..."
+    exit
+  end
+
   def owssh
     # Export environment variables for AWS CLI here
     $debug = false
@@ -73,12 +86,7 @@ class Owssh
     $owssh_config = "~/.owssh_conf"
 
     if ARGV.empty?
-      puts "Usage:"
-      puts "owssh list - List all environments"
-      puts "owssh describe - Show details of hosts in all stacks"
-      puts "owssh describe [Stack Name] - Show details of a specific stack"
-      puts "owssh [Stack Name] [Hostname] - SSH to a host in a stack"
-      puts "owssh [Stack Name] [Hostname] [Command]- SSH to a host in a stack and run a command"
+      puts "Please supply some options. Try 'owssh help' for available commands"
       exit
     end
 
@@ -87,7 +95,9 @@ class Owssh
 
     $stacks = get_stacks
 
-    if ARGV[0] == "list" then
+    if ARGV[0] == "help" then
+      print_help
+    elsif ARGV[0] == "list" then
       puts "Getting list of stacks..."
       print_stacks($stacks)
       exit
@@ -110,6 +120,7 @@ class Owssh
         exit
       end
     elsif $stacks.has_key?(ARGV[0].downcase.to_s) then
+      # SSH to the host
       if ARGV[1].nil? then
         puts "Please enter an instance name. I.E. rails-app3"
         exit
@@ -120,16 +131,34 @@ class Owssh
         $instances["#{instance["Hostname"]}"] = instance["PublicIp"]
       end
       if $instances.has_key?(ARGV[1]) then
+        # Open interactive SSH connnection
         if ARGV[2].nil? then
           puts "Opening connection to #{ARGV[1]}..."
           exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]}")
-        else
+        elsif ARGV[3].nil? then
+          # Run command through SSH on host
           puts "Running comand #{ARGV[2]} on host #{ARGV[1]}..."
           exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]} '#{ARGV[2]}'")
         end
       else
-        puts "Instance with name '#{ARGV[1]}' not found"
-        exit
+        $first_instance = ""
+        $instances.each do |instance_name, data|
+          unless (instance_name =~ /#{ARGV[1].to_s}(.*)/).nil?
+            $first_instance = instance_name
+            break
+          end
+        end
+        if $first_instance == "" then
+          puts "Could not find host with name or type of '#{ARGV[1]}'"
+          exit
+        else
+          if ARGV[2].nil? then
+            puts "Running command '#{ARGV[2]}' on first host of type '#{ARGV[1]}' which is '#{$first_instance}'..."
+          else
+            puts "Running comand #{ARGV[2]} on host #{ARGV[1]}..."
+          end
+          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[$first_instance.to_s]} '#{ARGV[2]}'")
+        end
       end
     else
       puts "I don't quite understand what you're asking me to do..."
