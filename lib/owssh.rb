@@ -130,25 +130,24 @@ class Owssh
         puts "Please enter an instance name. I.E. rails-app3"
         exit
       end
-      stack_arg = ARGV[0].downcase
-      instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{$stacks[stack_arg]}`)
-      instances_json['Instances'].each do |instance|
-        $instances["#{instance["Hostname"]}"] = instance["PublicIp"]
-      end
+
+      stack_name = ARGV[0].downcase
+      $instances = get_instances($stacks[stack_name])
+
       if $instances.has_key?(ARGV[1]) then
         # Open interactive SSH connnection
         if ARGV[2].nil? then
-          puts "Opening connection to #{ARGV[1]}..."
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]}")
+          puts "Opening SSH connection to #{ARGV[1]}..."
+          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]['PUB_IP']}")
         elsif ARGV[3].nil? then
           # Run command through SSH on host
           puts "Running comand #{ARGV[2]} on host #{ARGV[1]}..."
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]} '#{ARGV[2]}'")
+          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]['PUB_IP']} '#{ARGV[2]}'")
         end
       else
         $first_instance = ""
         $instances.each do |instance_name, data|
-          unless (instance_name =~ /#{ARGV[1].to_s}(.*)/).nil?
+          unless (instance_name =~ /#{ARGV[1].to_s}(.*)/).nil? || data["PUB_IP"] == "DOWN"
             $first_instance = instance_name
             break
           end
@@ -158,11 +157,11 @@ class Owssh
           exit
         else
           if ARGV[2].nil? then
-            puts "Running command '#{ARGV[2]}' on first host of type '#{ARGV[1]}' which is '#{$first_instance}'..."
+            puts "Opening SSH connection to first of type '#{ARGV[1]}' which is '#{$first_instance}'..."
           else
-            puts "Running comand #{ARGV[2]} on host #{ARGV[1]}..."
+            puts "Running command '#{ARGV[2]}' on first host of type '#{ARGV[1]}' which is '#{$first_instance}'..."
           end
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[$first_instance.to_s]} '#{ARGV[2]}'")
+          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[$first_instance.to_s]['PUB_IP']} '#{ARGV[2]}'")
         end
       end
     else
