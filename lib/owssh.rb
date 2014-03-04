@@ -43,7 +43,7 @@ class Owssh
         column('Hostname', :width => 20)
         column('Public IP', :width => 15, :align => 'right')
         column('Private IP', :width => 15, :align => 'right')
-        column('Type', :width => 12)
+        column('Type', :width => 16)
       end
       instances.each do |instance_name, data|
         row do
