@@ -8,9 +8,12 @@ require 'command_line_reporter'
 class Owssh
   include CommandLineReporter
 
+  $aws_profile = "default"
+  $aws_config_file = "~/.aws/config.owssh"
+
   def get_stacks
     my_stacks = {}
-    stacks_json = JSON.parse(`aws opsworks describe-stacks`)
+    stacks_json = JSON.parse(`AWS_CONFIG_FILE=#{$aws_config_file} aws --profile #{$aws_profile} opsworks describe-stacks`)
 
     stacks_json['Stacks'].each do |stack|
       if $debug then puts "Stack Name: #{stack['Name'].gsub(' ','_').downcase}     Stack ID: #{stack['StackId']}" end
@@ -22,7 +25,7 @@ class Owssh
 
   def get_instances(id)
     my_instances = {}
-    instances_json = JSON.parse(`aws opsworks describe-instances --stack-id #{id}`)
+    instances_json = JSON.parse(`AWS_CONFIG_FILE=#{$aws_config_file} aws --profile #{$aws_profile} opsworks describe-instances --stack-id #{id}`)
     instances_json['Instances'].each do |instance|
       pub_ip = instance['ElasticIp'] || instance['PublicIp'] || "DOWN"
       priv_ip = instance['PrivateIp'] || "N/A"
