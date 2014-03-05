@@ -8,8 +8,6 @@ require 'command_line_reporter'
 class Owssh
   include CommandLineReporter
 
-  $aws_profile = "default"
-  $aws_config_file = "~/.aws/config.owssh"
 
   def get_stacks
     my_stacks = {}
@@ -75,23 +73,26 @@ class Owssh
   end
 
   def print_help
-    puts "Usage:"
-    puts "owssh list - List all environments"
-    puts "owssh describe - Show details of hosts in all stacks"
-    puts "owssh describe [Stack Name] - Show details of a specific stack"
-    puts "owssh [Stack Name] [Hostname or Type] - SSH to a host in a stack"
-    puts "owssh [Stack Name] [Hostname or Type] \"Your command here\" - SSH to a host in a stack and run a command"
+    puts "Version #{Gem.loaded_specs['owssh'].version}"
     puts ""
-    puts " Type     - The type of host. I.E. rails-app, resque, etc..."
-    puts " Hostname - The name of the host. I.E. rails-app1, resque1, etc..."
+    puts "Usage:"
+    puts "owssh list                                                   - List all environments"
+    puts "owssh describe                                               - Show details of hosts in all stacks"
+    puts "owssh describe [Stack Name]                                  - Show details of a specific stack"
+    puts "owssh [Stack Name] [Hostname or Type]                        - SSH to a host in a stack"
+    puts "owssh [Stack Name] [Hostname or Type] \"Your command here\"  - SSH to a host in a stack and run a command"
+    puts ""
+    puts " Type      - The type of host. I.E. rails-app, resque, etc..."
+    puts " Hostname  - The name of the host. I.E. rails-app1, resque1, etc..."
     exit
   end
 
   def owssh
     # Export environment variables for AWS CLI here
     $debug = false
-    $ssh_key_file = "~/.ssh/id_rsa_dev"
-    $owssh_config = "~/.owssh_conf"
+    $aws_profile = ENV['AWS_DEFAULT_PROFILE'] || "default"
+    $ssh_key_file = ENV['OWSSH_SSH_KEY_FILE'] || "~/.ssh/id_rsa_owssh"
+    $aws_config_file = ENV['OWSSH_AWS_CONFIG_FILE'] || ENV['AWS_CONFIG_FILE'] || "~/.aws/config.owssh"
 
     if ARGV.empty?
       puts "Please supply some options. Try 'owssh help' for available commands"
