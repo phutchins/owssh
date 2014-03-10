@@ -107,10 +107,12 @@ class Owssh
     if ARGV[0] == "help" then
       print_help
     elsif ARGV[0] == "list" then
+      # List all stacks
       puts "Getting list of stacks..."
       print_stacks($stacks)
       exit
     elsif ARGV[0] == "describe" && ARGV[1].nil? then
+      # Describe all stacks
       $stacks.each do |stack_name, id|
         puts "Getting data for Stack: #{stack_name}"
         $instances = get_instances(id)
@@ -118,8 +120,9 @@ class Owssh
       end
       exit
     elsif ARGV[0] == "describe" && !ARGV[1].nil? then
-      stack_name = ARGV[1]
-      if $stacks.has_key?(ARGV[1].downcase.to_s) then
+      # Describe a particular stack
+      stack_name = ARGV[1].downcase.to_s
+      if $stacks.has_key?(stack_name) then
         if $debug then puts "Stack ID: #{$stacks[stack_name]}" end
         puts "Getting data for Stack: #{stack_name}"
         $instances = get_instances($stacks[stack_name])
@@ -135,20 +138,21 @@ class Owssh
         exit
       end
 
-      stack_name = ARGV[0].downcase
+      stack_name = ARGV[0].downcase.to_s
       $instances = get_instances($stacks[stack_name])
 
-      if $instances.has_key?(ARGV[1]) then
-        # Open interactive SSH connnection
+      if $instances.has_key?(ARGV[1].downcase.to_s) then
+        # SSH to specific host
         if ARGV[2].nil? then
           puts "Opening SSH connection to #{ARGV[1]}..."
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]['PUB_IP']}")
+          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].downcase.to_s]['PUB_IP']}")
         elsif ARGV[3].nil? then
           # Run command through SSH on host
           puts "Running comand #{ARGV[2]} on host #{ARGV[1]}..."
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].to_s]['PUB_IP']} '#{ARGV[2]}'")
+          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].downcase.to_s]['PUB_IP']} '#{ARGV[2]}'")
         end
       else
+        # SSH to first instance of certain type
         $first_instance = ""
         $instances.each do |instance_name, data|
           unless (instance_name =~ /#{ARGV[1].to_s}(.*)/).nil? || data["PUB_IP"] == "DOWN"
