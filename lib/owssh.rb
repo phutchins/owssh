@@ -25,15 +25,16 @@ class Owssh
     my_instances = {}
     instances_json = JSON.parse(`AWS_CONFIG_FILE=#{$aws_config_file} aws --profile #{$aws_profile} opsworks describe-instances --stack-id #{id}`)
     instances_json['Instances'].each do |instance|
-      pub_ip = instance['ElasticIp'] || instance['PublicIp'] || "DOWN"
+      pub_ip = instance['ElasticIp'] || instance['PublicIp'] || "N/A"
       priv_ip = instance['PrivateIp'] || "N/A"
+      status = instance['Status']
       match = instance['Hostname'].match(/(.*)\d+/) rescue nil
       if !match.nil? then
         type = match[1].to_s
       else
         type = "N/A"
       end
-      my_instances[instance['Hostname'].to_s] = { "PUB_IP" => pub_ip.to_s, "PRIV_IP" => priv_ip.to_s, "TYPE" => type }
+      my_instances[instance['Hostname'].to_s] = { "PUB_IP" => pub_ip.to_s, "PRIV_IP" => priv_ip.to_s, "TYPE" => type, "STATUS" => status }
     end
     my_instances
   end
@@ -45,6 +46,7 @@ class Owssh
         column('Public IP', :width => 15, :align => 'right')
         column('Private IP', :width => 15, :align => 'right')
         column('Type', :width => 16)
+        column('Status', :width => 8)
       end
       instances.each do |instance_name, data|
         row do
@@ -52,6 +54,7 @@ class Owssh
           column(data['PUB_IP'])
           column(data['PRIV_IP'])
           column(data['TYPE'])
+          column(data['STATUS'])
         end
       end
     end
@@ -72,6 +75,10 @@ class Owssh
     end
   end
 
+  def ssh_connect(connect_user, su_to_user, ssh_key, command)
+
+  end
+
   def print_help
     puts "Version #{Gem.loaded_specs['owssh'].version}"
     puts ""
@@ -80,7 +87,7 @@ class Owssh
     puts "owssh describe                                               - Show details of hosts in all stacks"
     puts "owssh describe [Stack Name]                                  - Show details of a specific stack"
     puts "owssh [Stack Name] [Hostname or Type]                        - SSH to a host in a stack"
-    puts "owssh [Stack Name] [Hostname or Type] \"Your command here\"  - SSH to a host in a stack and run a command"
+    puts "owssh [Stack Name] [Hostname or Type] \"Your command here\"    - SSH to a host in a stack and run a command"
     puts ""
     puts " Type      - The type of host. I.E. rails-app, resque, etc..."
     puts " Hostname  - The name of the host. I.E. rails-app1, resque1, etc..."
@@ -93,6 +100,7 @@ class Owssh
     $aws_profile = ENV['AWS_DEFAULT_PROFILE'] || "default"
     $ssh_key_file = ENV['OWSSH_SSH_KEY_FILE'] || "~/.ssh/id_rsa_owssh"
     $aws_config_file = ENV['OWSSH_AWS_CONFIG_FILE'] || ENV['AWS_CONFIG_FILE'] || "~/.aws/config.owssh"
+    $ssh_user = ENV['OWSSH_USER'] || "ubuntu"
 
     if ARGV.empty?
       puts "Please supply some options. Try 'owssh help' for available commands"
@@ -145,23 +153,23 @@ class Owssh
         # SSH to specific host
         if ARGV[2].nil? then
           puts "Opening SSH connection to #{ARGV[1]}..."
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].downcase.to_s]['PUB_IP']}")
+          exec("ssh -i #{$ssh_key_file} #{$ssh_user}@#{$instances[ARGV[1].downcase.to_s]['PUB_IP']}")
         elsif ARGV[3].nil? then
           # Run command through SSH on host
           puts "Running comand #{ARGV[2]} on host #{ARGV[1]}..."
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[ARGV[1].downcase.to_s]['PUB_IP']} '#{ARGV[2]}'")
+          exec("ssh -i #{$ssh_key_file} #{$ssh_user}@#{$instances[ARGV[1].downcase.to_s]['PUB_IP']} '#{ARGV[2]}'")
         end
       else
         # SSH to first instance of certain type
         $first_instance = ""
         $instances.each do |instance_name, data|
-          unless (instance_name =~ /#{ARGV[1].to_s}(.*)/).nil? || data["PUB_IP"] == "DOWN"
+          unless (instance_name =~ /#{ARGV[1].to_s}(.*)/).nil? || data["STATUS"] == ( "stopped" || "pending" || "requested" || "pending" )
             $first_instance = instance_name
             break
           end
         end
         if $first_instance == "" then
-          puts "Could not find host with name or type of '#{ARGV[1]}'"
+          puts "Could not find valid host with name or type of '#{ARGV[1]}'"
           exit
         else
           if ARGV[2].nil? then
@@ -169,12 +177,12 @@ class Owssh
           else
             puts "Running command '#{ARGV[2]}' on first host of type '#{ARGV[1]}' which is '#{$first_instance}'..."
           end
-          exec("ssh -i ~/.ssh/id_rsa_dev ubuntu@#{$instances[$first_instance.to_s]['PUB_IP']} '#{ARGV[2]}'")
+          exec("ssh -i #{$ssh_key_file} #{$ssh_user}@#{$instances[$first_instance.to_s]['PUB_IP']} '#{ARGV[2]}'")
         end
       end
     else
       puts "I don't quite understand what you're asking me to do..."
-      puts " Try running owssh with no arguments for help!"
+      puts " Try running 'owssh help' for help!"
       exit
     end
   end
