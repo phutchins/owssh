@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name    = 'owssh'
-  s.version = '0.0.26'
-  s.date    = '2014-03-03'
+  s.version = '0.0.27'
+  s.date    = '2014-03-08'
   s.summary = 'OWssh'
   s.description   = 'Wrapper for awscli for listing OpsWorks hosts and sshing to them'
   s.authors       = ["Philip Hutchins"]

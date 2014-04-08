@@ -91,6 +91,13 @@ class Owssh
     puts ""
     puts " Type      - The type of host. I.E. rails-app, resque, etc..."
     puts " Hostname  - The name of the host. I.E. rails-app1, resque1, etc..."
+    puts ""
+    puts "Environment Variables:"
+    puts "  AWS_DEFAULT_PROFILE         Defines the AWS config profile to use"
+    puts "  OWSSH_SSH_KEY_FILE          Path to your ssh key file"
+    puts "  OWSSH_AWS_CONFIG_FILE       Path to your aws config file if you want it to be different from default"
+    puts "  OWSSH_USER                  The user to SSH as. Default is ubuntu"
+    puts ""
     exit
   end
 
