@@ -111,7 +111,7 @@ class Owssh
 
     if ARGV.empty?
       puts "Please supply some options. Try 'owssh help' for available commands"
-      exit
+      abort
     end
 
     $stacks = {}
@@ -144,13 +144,13 @@ class Owssh
         print_instances($instances)
       elsif
         puts "Unable to find stack named '#{ARGV[1]}'"
-        exit
+        abort
       end
     elsif $stacks.has_key?(ARGV[0].downcase.to_s) then
       # SSH to the host
       if ARGV[1].nil? then
         puts "Please enter an instance name. I.E. rails-app3"
-        exit
+        abort
       end
 
       stack_name = ARGV[0].downcase.to_s
@@ -177,7 +177,7 @@ class Owssh
         end
         if $first_instance == "" then
           puts "Could not find valid host with name or type of '#{ARGV[1]}'"
-          exit
+          abort
         else
           if ARGV[2].nil? then
             puts "Opening SSH connection to first of type '#{ARGV[1]}' which is '#{$first_instance}'..."
@@ -190,7 +190,7 @@ class Owssh
     else
       puts "I don't quite understand what you're asking me to do..."
       puts " Try running 'owssh help' for help!"
-      exit
+      abort
     end
   end
 end
