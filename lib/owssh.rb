@@ -86,7 +86,7 @@ class Owssh
     puts "owssh list                                                   - List all environments"
     puts "owssh describe                                               - Show details of hosts in all stacks"
     puts "owssh describe [Stack Name]                                  - Show details of a specific stack"
-    puts "owssh [Stack Name] [Hostname or Type]                        - SSH to a host in a stack"
+    puts "owssh [Stack Name] [Hostname or Type]                        - SSH to a host in a stack. Partial hostname is accepted."
     puts "owssh [Stack Name] [Hostname or Type] \"Your command here\"    - SSH to a host in a stack and run a command"
     puts ""
     puts " Type      - The type of host. I.E. rails-app, resque, etc..."
